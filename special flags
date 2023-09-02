@@ -1,0 +1,37 @@
+import pandas as pd
+
+
+def create_interruption_flags(df, ep, consumption_forecast_interruption_flag, real_time_interruption_flag):
+    """
+    This function checks a specific column (ep) for missing values and sets specific flags when there is a continuous 
+    48 absence of data or beyond. Its purpose is to detect consecutive data absence. This function creates consumption_forecast_interruption_flag 
+    and real_time_interruption_flag.
+    """
+
+    df[consumption_forecast_interruption_flag] = df[ep].apply(lambda x: 1 if pd.isnull(x) else 0)
+    df[real_time_interruption_flag] = 0
+
+    # Create real_time_interruption_flags from 1 to 48
+    count = 0
+    for i in range(len(df)):
+        if df[consumption_forecast_interruption_flag].iat[i] == 1:
+            count += 1
+        else:
+            count = 0
+        if count == 48:
+            for j in range(1, 49):
+                df[real_time_interruption_flag].iat[i-48+j] = j
+
+    # Create real-time interruption flags after 48
+    count = 48
+    for i in range(len(df) - 1):
+        if df[real_time_interruption_flag].iat[i] != count:
+            continue
+        elif df[consumption_forecast_interruption_flag].iat[i+1] == 1:
+            count += 1
+            df[real_time_interruption_flag].iat[i+1] = count
+        else:
+            count = 48
+
+create_interruption_flags(df, 'ep', 'consumption_forecast_interruption_flag', 'real_time_interruption_flag')
+print(df)
